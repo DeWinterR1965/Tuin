@@ -2,136 +2,171 @@
 <html lang="nl">
 <head>
   <meta charset="utf-8" />
-  <title>Interactieve Tuin (Google Sheets)</title>
+  <title>De Wintertuin - Finale Fix</title>
   <style>
-    body { 
-      font-family: system-ui,-apple-system,BlinkMacSystemFont,sans-serif; 
-      padding:20px; 
-      background: url('achtergrond.JPG') center/cover no-repeat fixed; 
+    body { font-family: system-ui, sans-serif; padding:20px; background: url('achtergrond.JPG') center/cover no-repeat fixed; }
+    #controls { margin-bottom:10px; display:flex; flex-wrap:wrap; gap:15px; align-items:center; z-index: 2000; position: relative; }
+    button { padding:8px 14px; border:none; border-radius:8px; background:#2563eb; color:white; cursor:pointer; font-size:14px; box-shadow:0 4px 6px rgba(0,0,0,0.1); }
+    
+    #tuin-wrapper { 
+      position:relative; width:90%; aspect-ratio:741/1193; max-width:100vw; 
+      border-radius:8px; overflow:hidden; margin: 0 auto 18px auto; 
+      border:4px solid transparent; user-select:none; 
+	  container-type: inline-size;
     }
-    h1 { margin-bottom:5px; }
-    #controls { margin-bottom:10px; display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
-    button { padding:8px 14px; border:none; border-radius:8px; background:#2563eb; color:white; cursor:pointer; font-size:14px; box-shadow:0 6px 14px -4px rgba(37,99,235,.35); flex-shrink:0; }
-    button.secondary { background:#6b7280; }
-    #tuin-wrapper { position:relative; width:90%; aspect-ratio:741/1193; max-width:100vw; border-radius:8px; overflow:hidden; margin-bottom:18px; margin-left:auto; margin-right:auto; border:2px solid transparent; transition:border-color 0.3s ease; user-select:none; }
-    #tuin-wrapper.editing { border-color:#dc2626; box-shadow:0 0 12px 2px rgba(220,38,38,0.4); }
-	#tuin-wrapper.editing .plant-wrapper .delete-btn {
-      display: block;
-    }
-    #tuin-container { width:100%; height:100%; }
-    #tuin { position:relative; width:100%; height:100%; background:url('grondplan_tuin.jpg') center/cover no-repeat; cursor:default; }
-    .plant { position:absolute; width:18px; height:18px; display:flex; align-items:center; justify-content:center; border-radius:50%; font-size:16px; color:white; user-select:none; box-shadow:0 4px 12px rgba(0,0,0,.25); transition:transform .15s; }
-    .plant:hover { transform:scale(1.1); }
-    .tooltip { position:absolute; background:white; padding:10px; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,.2); font-size:13px; pointer-events:none; z-index:50; max-width:240px; border:1px solid #ccc; }
-    .delete-btn { position:absolute; top:-6px; right:-6px; background:#ef4444; width:16px; height:16px; border-radius:50%; font-size:12px; line-height:16px; text-align:center; cursor:pointer; color:white; border:2px solid white; display:none; user-select:none; }
-    .plant-wrapper { position:absolute; transform:translate(-50%,-50%); }
-    .type-label { display:inline-flex; gap:6px; align-items:center; }
-    .legend-dot { width:16px; height:16px; border-radius:50%; display:inline-block; margin-right:4px; }
-    #form-popup { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:white; padding:16px 18px; border-radius:10px; box-shadow:0 18px 48px -4px rgba(0,0,0,.35); z-index:200; width:340px; display:none; font-size:14px; }
-    #form-popup label { display:block; margin-top:8px; }
-    #form-popup input[type="text"], #form-popup textarea, #form-popup select, #form-popup input[type="color"] { width:100%; padding:6px 8px; border:1px solid #bbb; border-radius:6px; font-size:14px; box-sizing:border-box; }
-    #form-popup img { max-width:100%; border-radius:6px; margin-top:6px; display:block; }
-    .flex-row { display:flex; gap:8px; align-items:center; }
-    .small { font-size:12px; color:#555; }
-    #gallery { margin-top:10px; }
-    .gallery-grid { display:flex; flex-direction:column; gap:24px; }
-    .card { background:white; border-radius:8px; padding:10px; box-shadow:0 8px 24px rgba(0,0,0,.08); display:flex; flex-direction:column; align-items:center; cursor:pointer; width:140px; margin-bottom:6px; }
-    .card img { width:100%; aspect-ratio:4/3; object-fit:cover; border-radius:6px; display:block; margin-bottom:6px; }
-    .card .meta { font-size:14px; font-weight:600; text-align:center; color:black !important; text-shadow:none !important; }
-    .card .small { font-size:12px; color:#555; text-align:center; margin-top:4px; color:black !important; text-shadow:none !important; }
-    #filter-wrapper { flex:1; min-width:180px; }
-    #filter-input { padding:6px 10px; border-radius:6px; border:1px solid #888; width:100%; box-sizing:border-box; font-size:14px; }
-    #zoom-controls { margin:10px 0 18px 0; display:flex; gap:10px; }
-    .white-text { color:white; text-shadow:1px 1px 3px rgba(0,0,0,0.8); }
-  </style>
+    #tuin-wrapper.editing { border-color:#dc2626; }
+    #tuin-container { width:100%; height:100%; touch-action: none; }
+    #tuin { position:relative; width:100%; height:100%; background:url('grondplan_tuin.jpg') center/cover no-repeat; }
+ 
 
-  <!-- Pan/Zoom -->
+	/* Nieuwe stijl om de bovenkant vast te zetten */
+    .sticky-header {
+      position: sticky;
+      top: 0;
+      z-index: 5000; /* Zorgt dat het boven de planten blijft */
+      background: rgba(0, 0, 0, 0.4); /* Subtiele donkere waas voor leesbaarheid */
+      backdrop-filter: blur(8px); /* Mooi modern 'glass' effect */
+      padding: 10px 20px;
+      margin: -20px -20px 20px -20px; /* Compenseert de padding van de body */
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    /* Zorg dat de titel minder ruimte inneemt zodat alles op één regel past indien nodig */
+    h1.white-text { 
+      margin: 0 0 10px 0; 
+      font-size: 24px; 
+    }
+	
+    .plant-wrapper { position:absolute; transform:translate(-50%,-50%); z-index: 100; pointer-events: auto; }
+	.plant { 
+      display:flex; align-items:center; justify-content:center; 
+      border-radius:50%; color:white; cursor: pointer;
+      /* Aquarel effect: zachte rand en glow */
+      border: 1.5px solid rgba(255,255,255,0.6);
+      box-shadow: 0 0 8px rgba(0,0,0,0.1);
+      transition: transform 0.2s;
+      font-weight: bold;
+    }
+
+    .legend-dot { 
+      width:14px; height:14px; border-radius:50%; display:inline-block; 
+      opacity: 0.65; /* Matcht met de kaart */
+      border: 1px solid white;
+    }
+	.legend-circle {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2); /* Subtiele witte glans */
+      border: 1.5px solid white;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 12px;
+      margin-right: 6px;
+      color: white;
+    }
+    
+    .type-label { 
+      display: inline-flex; 
+      align-items: center; 
+      margin-right: 15px; 
+      font-size: 14px; 
+      font-weight: 500;
+    }
+
+    .tooltip { position:absolute; background:white; padding:10px; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,.2); font-size:13px; pointer-events:none; z-index:4000; display:none; border:1px solid #ccc; max-width:240px; color: #333; }
+    
+    .delete-btn { position:absolute; top:-10px; right:-10px; background:#ef4444; width:20px; height:20px; border-radius:50%; font-size:14px; color:white; text-align:center; cursor:pointer; display:none; border:2px solid white; line-height:18px; }
+    #tuin-wrapper.editing .delete-btn { display: block; }
+
+    #form-popup { position:fixed; top:20px; right:20px; background:white; padding:20px; border-radius:12px; box-shadow:0 20px 60px rgba(0,0,0,0.3); z-index:3000; width:300px; display:none; transition: opacity 0.2s; }
+    #form-popup h3 { margin:0 0 10px 0; font-size:18px; }
+    #form-popup label { display:block; margin-top:10px; font-weight:500; font-size: 14px; }
+    #form-popup input[type="text"], #form-popup textarea, #form-popup select, #form-popup input[type="range"] { width:100%; margin-top:4px; padding:8px; box-sizing: border-box; border:1px solid #ccc; border-radius:6px; font-size: 14px; }
+    #form-popup input[type="color"] { width:100%; height: 30px; border:none; border-radius:6px; background: none; cursor: pointer; margin-top: 4px; }
+    #form-popup img { max-width: 150px; border-radius: 8px; margin-top: 10px; display: block; }
+    .form-buttons { display:flex; gap:10px; justify-content:flex-end; margin-top:15px; }
+
+    .white-text { color:white; text-shadow:1px 1px 3px rgba(0,0,0,0.8); }
+    
+    .gallery-grid { display:flex; flex-direction:column; gap:24px; margin-top:20px; }
+    .card { background:white; border-radius:8px; padding:10px; box-shadow:0 8px 24px rgba(0,0,0,.08); display:flex; flex-direction:column; align-items:center; cursor:pointer; width:140px; }
+    .card img { width:100%; aspect-ratio:4/3; object-fit:cover; border-radius:8px; display:block; margin-bottom:6px; }
+    
+    .no-photo-placeholder { width:100%; aspect-ratio:4/3; background-color:#dcdcdc; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#4b5563; font-size:18px; font-weight:500; margin-bottom:6px; }
+    .meta { font-size:14px; font-weight:600; color:black; display:flex; align-items:center; justify-content:center; }
+  </style>
   <script src="https://unpkg.com/@panzoom/panzoom/dist/panzoom.min.js"></script>
 </head>
 <body>
 
-<h1 class="white-text">De Wintertuin</h1>
+<div id="loading-overlay" style="position:fixed; inset:0; background:rgba(0,0,0,0.6); display:flex; align-items:center; justify-content:center; color:white; font-size:24px; z-index:9999;">Laden...</div>
 
-<div id="loading-overlay" style="
-  position:fixed;
-  top:0;
-  left:0;
-  width:100%;
-  height:100%;
-  background:rgba(0,0,0,0.6);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  color:white;
-  font-size:24px;
-  z-index:9999;
-">
-  Loading data...
-</div>
+<div class="sticky-header">
+  <h1 class="white-text">De Wintertuin</h1>
 
+  <div id="controls">
+    <button id="editMapBtn">Edit map (Slepen & Toevoegen)</button>
+    <button id="saveCloudBtn">Opslaan (Google Sheet)</button>
+    
+    <div id="filter-wrapper">
+      <label for="filter-input" class="white-text"><strong>Filter:</strong></label>
+      <input type="text" id="filter-input" placeholder="Zoek plant..." style="padding:8px; border-radius:8px; border:none; width:130px;">
+    </div>
 
-
-<div id="controls">
-  <button id="saveCloudBtn">Opslaan (Google Sheet)</button>
-  <button class="secondary" id="loadCloudBtn">Laden (Google Sheet)</button>
-  <button id="editMapBtn">Edit map</button>
-
-  <div id="filter-wrapper">
-    <label for="filter-input" class="white-text"><strong>Filter op naam:</strong></label>
-    <input type="text" id="filter-input" placeholder="Bijv. Lavendel" />
-  </div>
-
-  <div id="legende" class="white-text">
-    <label><strong>Legende:</strong></label>
-    <span style="display:inline-flex; gap:12px; align-items:center; margin-left:6px;">
-      <span class="type-label"><span class="legend-dot" style="background:#ef4444;"></span> Roos</span>
-      <span class="type-label"><span class="legend-dot" style="background:#ca8a04;"></span> Struik</span>
-      <span class="type-label"><span class="legend-dot" style="background:#22c55e;"></span> Vaste plant</span>
-      <span class="type-label"><span class="legend-dot" style="background:#16a34a;"></span> Boom</span>
-      <span class="type-label"><span class="legend-dot" style="background:#0f172a;"></span> Andere</span>
-    </span>
+    <div id="legende" class="white-text">
+      <label><strong>Legende:</strong></label>
+      <span style="display:inline-flex; flex-wrap:wrap; gap:5px; margin-left:12px;">
+        <span class="type-label"><span class="legend-circle">R</span> Roos</span>
+        <span class="type-label"><span class="legend-circle">S</span> Struik</span>
+        <span class="type-label"><span class="legend-circle">V</span> Vaste plant</span>
+        <span class="type-label"><span class="legend-circle">B</span> Boom</span>
+        <span class="type-label"><span class="legend-circle">A</span> Andere</span>
+      </span>
+    </div>
   </div>
 </div>
 
-<div id="zoom-controls">
-  <button onclick="zoomIn()">➕ Zoom in</button>
-  <button onclick="zoomOut()">➖ Zoom uit</button>
-  <button onclick="resetZoom()">🔄 Reset</button>
-</div>
+
 
 <div id="tuin-wrapper">
   <div id="tuin-container">
-    <div id="tuin" onclick="handleClick(event)"></div>
+    <div id="tuin" onclick="handleMapClick(event)"></div>
   </div>
 </div>
 
 <div id="form-popup">
-  <h3 style="margin:0 0 6px 0;">Plant toevoegen / bewerken</h3>
-  <div>
-    <label>Naam</label>
-    <input type="text" id="input-name" placeholder="Bijv. Lavendel" />
-    <label>Type</label>
-    <select id="input-type">
-      <option value="roos">Roos</option>
-      <option value="struik">Struik</option>
-      <option value="vasteplant">Vaste plant</option>
-      <option value="boom">Boom</option>
-      <option value="anders">Andere</option>
-    </select>
-    <label>Kleur</label>
-    <input type="color" id="input-color" value="#16a34a" />
-    <label>Extra info</label>
-    <textarea id="input-extra" rows="2" placeholder="Bv. houdt van zon"></textarea>
-    <label>Foto (optioneel)</label>
-    <div class="flex-row">
-      <input type="file" id="input-photo" accept="image/*" />
-    </div>
-    <div id="photo-preview"></div>
-    <div style="margin-top:12px; display:flex; gap:8px; justify-content:flex-end;">
-      <button id="savePlantBtn">Opslaan</button>
-      <button id="cancelBtn" class="secondary">Annuleren</button>
-    </div>
-    <div class="small" style="margin-top:8px;">Klik op een plant om te bewerken; hover toont details; rode × verwijdert.</div>
+  <h3>Plant bewerken</h3>
+  <label>Naam</label>
+  <input type="text" id="input-name" placeholder="Bijv. roosje">
+  
+  <label>Type</label>
+  <select id="input-type">
+    <option value="roos">Roos</option>
+    <option value="struik">Struik</option>
+    <option value="vasteplant">Vaste plant</option>
+    <option value="boom">Boom</option>
+    <option value="anders">Anders</option>
+  </select>
+  
+  <label>Grootte symbool</label>
+  <input type="range" id="input-size" min="10" max="80" value="22">
+  
+  <label>Kleur</label>
+  <input type="color" id="input-color">
+  
+  <label>Extra info</label>
+  <textarea id="input-extra" rows="2" placeholder="Bv. houdt van zon"></textarea>
+  
+  <label>Foto (optioneel)</label>
+  <input type="file" id="input-photo" accept="image/*">
+  <div id="photo-preview"></div>
+  
+  <div class="form-buttons">
+    <button id="savePlantBtn">Opslaan</button>
+    <button id="cancelBtn" style="background:#6b7280">Annuleren</button>
   </div>
 </div>
 
@@ -143,313 +178,299 @@
 </template>
 
 <div id="gallery" class="white-text">
-  <h2 class="white-text">Galerij van planten</h2>
+  <h2>Galerij van planten</h2>
   <div class="gallery-grid" id="gallery-grid"></div>
 </div>
 
 <script>
-const SPREADSHEET_ID = "1_k-3n7cjGRjoS22fJMliRfj_z4pB_rTRx3um_5ydlKs";
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbycfErQszIYrDwAN55DJonBdknBpy6K3jY9SLEpZliuj0WmPW2AO7g3jrW4MwGzYwKicg/exec";
+// CONTROLEER OF DEZE URL KLOPT MET JE NIEUWSTE IMPLEMENTATIE
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzRmKdyA0Gs3hQ-Qzl9kom0hpc0mSnmXq0P-4zfyMjTqPGPpTaNsaAfDvrqfs-keFHtQA/exec";
 
 let plants = [];
-let editingId = null;
-let tempPos = null;
 let editMode = false;
+let isDragging = false;
+let dragNode = null;
+let panzoomInstance = null;
+let tempPos = null;
+let editingId = null;
+let hasMoved = false;
 let tooltip = null;
 
 const typeMeta = {
-  roos:{color:'#ef4444',icon:'🌹'},
-  struik:{color:'#ca8a04',icon:'🌳'},
-  vasteplant:{color:'#22c55e',icon:'🌿'},
-  boom:{color:'#16a34a',icon:'🌲'},
-  anders:{color:'#0f172a',icon:'🌱'}
+  roos:       { color: '#f8a3a8', icon: 'R' }, // Zacht roze
+  struik:     { color: '#e2cfb6', icon: 'S' }, // Warm beige
+  vasteplant: { color: '#b5d491', icon: 'V' }, // Pastel groen
+  boom:       { color: '#8eb897', icon: 'B' }, // Salie groen
+  anders:     { color: '#cfdbd5', icon: 'A' }  // Licht grijs
 };
 
 const tuinEl = document.getElementById('tuin');
-const tuinWrapper = document.getElementById('tuin-wrapper');
-const form = document.getElementById('form-popup');
-const inputName = document.getElementById('input-name');
-const inputType = document.getElementById('input-type');
-const inputColor = document.getElementById('input-color');
-const inputExtra = document.getElementById('input-extra');
+const containerEl = document.getElementById('tuin-container');
+const filterInput = document.getElementById('filter-input');
 const inputPhoto = document.getElementById('input-photo');
 const photoPreview = document.getElementById('photo-preview');
-const savePlantBtn = document.getElementById('savePlantBtn');
-const cancelBtn = document.getElementById('cancelBtn');
-const saveCloudBtn = document.getElementById('saveCloudBtn');
-const loadCloudBtn = document.getElementById('loadCloudBtn');
-const filterInput = document.getElementById('filter-input');
 const galleryGrid = document.getElementById('gallery-grid');
-const editMapBtn = document.getElementById('editMapBtn');
+const sizeInput = document.getElementById('input-size');
 
-function showTooltip(html, wrapper){
-  if(!tooltip){
+function initPanzoom() {
+  panzoomInstance = Panzoom(containerEl, { maxScale: 4, minScale: 0.5, contain: 'outside' });
+}
+initPanzoom();
+
+function showTooltip(html, wrapper) {
+  if (editMode) return;
+  if (!tooltip) {
     tooltip = document.createElement('div');
     tooltip.className = 'tooltip';
     document.body.appendChild(tooltip);
   }
-
   tooltip.innerHTML = html;
   tooltip.style.display = 'block';
-
   const rect = wrapper.getBoundingClientRect();
-  const ttRect = tooltip.getBoundingClientRect();
-  const scrollX = window.scrollX || window.pageXOffset;
-  const scrollY = window.scrollY || window.pageYOffset;
-
-  // Standaard rechts van de plant
-  let left = rect.right + 6 + scrollX;
-  let top = rect.top + scrollY;
-
-  // Als tooltip buiten viewport rechts valt, links plaatsen
-  if(left + ttRect.width > window.innerWidth + scrollX){
-    left = rect.left - ttRect.width - 6 + scrollX;
-  }
-
-  // Als tooltip onderkant buiten viewport valt, boven plant plaatsen
-  if(top + ttRect.height > window.innerHeight + scrollY){
-    top = rect.bottom - ttRect.height + scrollY;
-  }
-
-  // Als tooltip bovenkant nog boven viewport, naar boven minimaliseren
-  if(top < scrollY) top = scrollY + 5;
-
-  tooltip.style.left = left + 'px';
-  tooltip.style.top = top + 'px';
+  tooltip.style.left = (rect.right + 10 + window.scrollX) + 'px';
+  tooltip.style.top = (rect.top + window.scrollY) + 'px';
 }
-
-function hideTooltip(){ if(tooltip) tooltip.style.display='none'; }
-
-function handleClick(event){
-  if(!editMode) return;
-  const rect=tuinEl.getBoundingClientRect();
-  tempPos={ x:(event.clientX-rect.left)/rect.width, y:(event.clientY-rect.top)/rect.height };
-  openForm();
-}
-
-function openForm(plant=null){
-  if(plant){
-    editingId=plant.id;
-    inputName.value=plant.name;
-    inputType.value=plant.type;
-    inputColor.value=plant.color||typeMeta[plant.type]?.color||'#000000';
-    inputExtra.value=plant.extra||'';
-    photoPreview.innerHTML=plant.photo?`<img src="${plant.photo}" alt="foto" />`:'';
-  }else{
-    editingId=null;
-    inputName.value=''; inputType.value='boom';
-    inputColor.value=typeMeta['boom'].color;
-    inputExtra.value=''; photoPreview.innerHTML='';
-  }
-  inputPhoto.value=''; delete inputPhoto.dataset.photo;
-  form.style.display='block';
-}
-function closeForm(){ form.style.display='none'; tempPos=null; editingId=null; }
-
-inputPhoto.addEventListener('change', e=>{
-  const file = e.target.files[0]; 
-  if(!file) return;
-
-  const reader = new FileReader();
-  reader.onload = ev => {
-    const img = new Image();
-    img.onload = () => {
-      const MAX_WIDTH = 150;
-      const scale = Math.min(MAX_WIDTH / img.width, 1);
-      const canvas = document.createElement('canvas');
-      canvas.width = img.width * scale;
-      canvas.height = img.height * scale;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      const resizedDataUrl = canvas.toDataURL('image/png');
-      photoPreview.innerHTML = `<img src="${resizedDataUrl}" alt="foto" />`;
-      inputPhoto.dataset.photo = resizedDataUrl;
-    };
-    img.src = ev.target.result;
-  };
-  reader.readAsDataURL(file);
-});
-
-savePlantBtn.addEventListener('click', ()=>{
-  const name=inputName.value.trim(); if(!name){ alert("Geef een naam."); return; }
-  const type=inputType.value;
-  const extra=inputExtra.value.trim();
-  const photo=inputPhoto.dataset.photo || (photoPreview.querySelector('img') ? photoPreview.querySelector('img').src : '');
-  const color=inputColor.value;
-  if(editingId){
-    const p=plants.find(p=>p.id===editingId); if(!p) return;
-    p.name=name; p.type=type; p.extra=extra; p.photo=photo; p.color=color;
-  }else if(tempPos){
-    plants.push({ id:crypto.randomUUID(), name, type, extra, photo, color, x:tempPos.x, y:tempPos.y, created:Date.now() });
-  }
-  refreshAll(); closeForm();
-});
-
-cancelBtn.addEventListener('click', e=>{ e.preventDefault(); closeForm(); });
-
-function renderPlant(plant){
-  const tpl=document.getElementById('plant-template');
-  const wrapper=tpl.content.firstElementChild.cloneNode(true);
-  const plantEl=wrapper.querySelector('.plant');
-  const del=wrapper.querySelector('.delete-btn');
-  const meta=typeMeta[plant.type]||typeMeta['anders'];
-  plantEl.style.background=plant.color||meta.color;
-  plantEl.textContent=meta.icon;
-  wrapper.style.left=`${plant.x*100}%`;
-  wrapper.style.top=`${plant.y*100}%`;
-  wrapper.style.transform='translate(-50%,-50%)';
-  plantEl.setAttribute('data-id',plant.id);
-
-  wrapper.addEventListener('mouseenter',()=>{
-  let html = `<div><strong>${plant.name}</strong> (${plant.type})</div>`;
-  if(plant.extra) html += `<div style="margin-top:4px;">${plant.extra}</div>`;
-  if(plant.photo) html += `<div style="margin-top:6px;"><img src="${plant.photo}" style="max-width:120px;border-radius:6px;"></div>`;
-  showTooltip(html, wrapper);
-});
-
-  wrapper.addEventListener('mouseleave', hideTooltip);
-  plantEl.addEventListener('click', e=>{ e.stopPropagation(); openForm(plant); });
-  del.addEventListener('click', e => { 
-    e.stopPropagation(); 
-    if (!editMode) return;
-    removePlant(plant.id); 
-  });
-  wrapper.dataset.name=plant.name.toLowerCase();
-  wrapper.dataset.type=plant.type;
-  tuinEl.appendChild(wrapper);
-}
-
-function refreshAll(){ tuinEl.innerHTML=''; plants.forEach(renderPlant); refreshGallery(); applyFilter(); }
-function removePlant(id){ plants=plants.filter(p=>p.id!==id); refreshAll(); }
+function hideTooltip() { if (tooltip) tooltip.style.display = 'none'; }
 
 filterInput.addEventListener('input', applyFilter);
-function applyFilter(){
-  const val=filterInput.value.trim().toLowerCase();
-  tuinEl.querySelectorAll('.plant-wrapper').forEach(w=>{
-    w.style.display=(w.dataset.name||'').includes(val)?'':'none';
+
+function applyFilter() {
+  const val = filterInput.value.trim().toLowerCase();
+  tuinEl.querySelectorAll('.plant-wrapper').forEach(w => {
+    const name = w.dataset.name || '';
+    w.style.display = name.includes(val) ? '' : 'none';
   });
   refreshGallery(val);
 }
 
-function refreshGallery(filterVal=''){
-  galleryGrid.innerHTML='';
-
-  const types = ['roos','struik','vasteplant','boom','anders'];
-
-  types.forEach(type=>{
-    const filteredPlants = plants.filter(p => p.type === type && p.name.toLowerCase().includes(filterVal));
-    if(filteredPlants.length === 0) return;
-
-    const typeContainer = document.createElement('div');
-    typeContainer.className = 'gallery-type';
-    
-    const h3 = document.createElement('h3');
-    h3.textContent = type.charAt(0).toUpperCase() + type.slice(1); // bv 'Roos'
-    h3.className = 'white-text';
-    typeContainer.appendChild(h3);
-
-    // Container voor kaarten van dit type
-    const cardRow = document.createElement('div');
-    cardRow.style.display = 'flex';
-    cardRow.style.flexWrap = 'wrap';
-    cardRow.style.gap = '12px';
-    cardRow.style.marginBottom = '18px'; // ruimte tussen types
-
-    filteredPlants.forEach(p=>{
+function refreshGallery(filterVal = '') {
+  galleryGrid.innerHTML = '';
+  const types = ['roos', 'struik', 'vasteplant', 'boom', 'anders'];
+  types.forEach(type => {
+    const filtered = plants.filter(p => p.type === type && (p.name || '').toLowerCase().includes(filterVal));
+    if (filtered.length === 0) return;
+    const typeBox = document.createElement('div');
+    typeBox.innerHTML = `<h3 class="white-text">${type.charAt(0).toUpperCase() + type.slice(1)}</h3>`;
+    const row = document.createElement('div');
+    row.style.display = 'flex'; row.style.flexWrap = 'wrap'; row.style.gap = '12px'; row.style.marginBottom = '18px';
+    filtered.forEach(p => {
       const card = document.createElement('div');
       card.className = 'card';
-      card.innerHTML = p.photo
-        ? `<img src="${p.photo}" alt="foto" />`
-        : '<div style="height:90px;background:#ddd;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#666;">Geen foto</div>';
-      const meta = typeMeta[p.type] || typeMeta['anders'];
-      const colorDot = `<span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:${p.color||meta.color};margin-right:6px;"></span>`;
-      card.innerHTML += `<div class="meta">${colorDot}${p.name}</div>`;
-      if(p.extra) card.innerHTML += `<div class="small">${p.extra}</div>`;
-
-      card.addEventListener('click',()=>openForm(p));
-
-      cardRow.appendChild(card);
+      card.innerHTML = p.photo ? `<img src="${p.photo}">` : `<div class="no-photo-placeholder">Geen foto</div>`;
+      const meta = typeMeta[p.type] || typeMeta.anders;
+      const colorDot = `<span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:${p.color || meta.color};margin-right:6px;"></span>`;
+      card.innerHTML += `<div class="meta">${colorDot}${p.name || 'Naamloos'}</div>`;
+      card.onclick = () => openForm(p);
+      row.appendChild(card);
     });
-
-    typeContainer.appendChild(cardRow);
-    galleryGrid.appendChild(typeContainer);
+    typeBox.appendChild(row);
+    galleryGrid.appendChild(typeBox);
   });
 }
 
+function renderPlant(plant) {
+  const tpl = document.getElementById('plant-template');
+  const wrapper = tpl.content.firstElementChild.cloneNode(true);
+  const plantEl = wrapper.querySelector('.plant');
+  const meta = typeMeta[plant.type] || typeMeta.anders;
+  
+  // 1. Bereken de schaalbare grootte (cqw)
+  const size = parseInt(plant.size) || 22;
+  const relativeSize = (size / 10).toFixed(2) + 'cqw';
 
+  // 2. Pas de positie toe
+  wrapper.style.left = (plant.x * 100) + '%';
+  wrapper.style.top = (plant.y * 100) + '%';
+  wrapper.dataset.name = (plant.name || '').toLowerCase();
+  
+  // 3. Aquarel & Schaalbare styling
+  plantEl.style.width = relativeSize;
+  plantEl.style.height = relativeSize;
+  plantEl.style.backgroundColor = plant.color || meta.color;
+  plantEl.style.opacity = "0.65"; 
+  
+  // 4. De letter ook schaalbaar maken
+  const letter = plant.type.charAt(0).toUpperCase();
+  plantEl.textContent = letter; 
+  plantEl.style.fontSize = (size / 18).toFixed(2) + 'cqw';
+  plantEl.style.textShadow = "1px 1px 2px rgba(0,0,0,0.3)";
 
+  plantEl.setAttribute('data-id', plant.id);
 
+  // Tooltip & Events
+  wrapper.addEventListener('mouseenter', () => {
+    let html = `<div><strong>${plant.name || 'Naamloos'}</strong></div>`;
+    if (plant.extra) html += `<div style="margin-top:4px; font-style:italic;">${plant.extra}</div>`;
+    if (plant.photo) html += `<div style="margin-top:6px;"><img src="${plant.photo}" style="max-width:150px; border-radius:4px;"></div>`;
+    showTooltip(html, wrapper);
+  });
+  wrapper.addEventListener('mouseleave', hideTooltip);
 
-inputType.addEventListener('change', ()=>{ inputColor.value=typeMeta[inputType.value]?.color||'#000000'; });
+  plantEl.onclick = (e) => { e.stopPropagation(); if (!hasMoved) { hideTooltip(); openForm(plant); } };
+  wrapper.querySelector('.delete-btn').onclick = (e) => { 
+    e.stopPropagation(); 
+    plants = plants.filter(p => p.id !== plant.id); 
+    hideTooltip(); refreshAll(); 
+  };
+  tuinEl.appendChild(wrapper);
+}
 
-const panzoomInstance=Panzoom(document.getElementById('tuin-container'),{ maxScale:3, minScale:0.5, contain:'outside' });
-function zoomIn(){ panzoomInstance.zoomIn(); }
-function zoomOut(){ panzoomInstance.zoomOut(); }
-function resetZoom(){ panzoomInstance.reset(); }
+function refreshAll() {
+  tuinEl.innerHTML = '';
+  plants.forEach(renderPlant);
+  applyFilter();
+}
 
-editMapBtn.addEventListener('click', ()=>{
-  editMode=!editMode;
-  if(editMode){
-    editMapBtn.textContent='Stop Edit';
-    editMapBtn.style.backgroundColor='#dc2626';
-    tuinWrapper.classList.add('editing');
-    tuinEl.style.cursor='crosshair';
-  }else{
-    editMapBtn.textContent='Edit map';
-    editMapBtn.style.backgroundColor='#2563eb';
-    tuinWrapper.classList.remove('editing');
-    tuinEl.style.cursor='default';
-    closeForm();
+sizeInput.oninput = () => {
+  if (editingId) {
+    const pEl = document.querySelector(`.plant[data-id="${editingId}"]`);
+    if (pEl) {
+      const s = sizeInput.value;
+      const relSize = (s / 10).toFixed(2) + 'cqw';
+      pEl.style.width = relSize; 
+      pEl.style.height = relSize; 
+      pEl.style.fontSize = (s / 18).toFixed(2) + 'cqw';
+    }
+  }
+};
+
+sizeInput.onmousedown = () => document.getElementById('form-popup').style.opacity = "0.5";
+sizeInput.onmouseup = () => document.getElementById('form-popup').style.opacity = "1";
+
+function openForm(plant = null) {
+  editingId = plant ? plant.id : null;
+  document.getElementById('input-name').value = plant ? plant.name : '';
+  document.getElementById('input-type').value = plant ? plant.type : 'roos';
+  sizeInput.value = plant ? (plant.size || 22) : 22;
+  document.getElementById('input-color').value = plant ? (plant.color || typeMeta[plant.type].color) : typeMeta['roos'].color;
+  document.getElementById('input-extra').value = plant ? plant.extra || '' : '';
+  photoPreview.innerHTML = plant && plant.photo ? `<img src="${plant.photo}">` : '';
+  inputPhoto.value = '';
+  delete inputPhoto.dataset.photo;
+  document.getElementById('form-popup').style.display = 'block';
+}
+
+document.getElementById('savePlantBtn').onclick = () => {
+  const name = document.getElementById('input-name').value.trim();
+  const type = document.getElementById('input-type').value;
+  const size = parseInt(sizeInput.value);
+  const color = document.getElementById('input-color').value;
+  const extra = document.getElementById('input-extra').value;
+  const photo = inputPhoto.dataset.photo || (photoPreview.querySelector('img') ? photoPreview.querySelector('img').src : '');
+
+  if (editingId) {
+    Object.assign(plants.find(p => p.id === editingId), { name, type, size, color, extra, photo });
+  } else if(tempPos) {
+    plants.push({ id: crypto.randomUUID(), name, type, size, color, extra, photo, x: tempPos.x, y: tempPos.y });
+  }
+  document.getElementById('form-popup').style.display = 'none';
+  refreshAll();
+};
+
+document.getElementById('cancelBtn').onclick = () => { document.getElementById('form-popup').style.display = 'none'; refreshAll(); };
+
+function handleMapClick(event) {
+  if (!editMode || isDragging || hasMoved || event.target.closest('.plant')) return;
+  const rect = tuinEl.getBoundingClientRect();
+  tempPos = { x: (event.clientX - rect.left) / rect.width, y: (event.clientY - rect.top) / rect.height };
+  openForm();
+}
+
+tuinEl.addEventListener('mousedown', (e) => {
+  const pEl = e.target.closest('.plant');
+  if (pEl && editMode) {
+    isDragging = true; hasMoved = false;
+    dragNode = { wrapper: pEl.parentElement, plantData: plants.find(p => p.id === pEl.getAttribute('data-id')) };
   }
 });
+window.addEventListener('mousemove', (e) => {
+  if (!isDragging || !dragNode) return;
+  hasMoved = true;
+  const rect = tuinEl.getBoundingClientRect();
+  let x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+  let y = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+  dragNode.wrapper.style.left = (x * 100) + '%';
+  dragNode.wrapper.style.top = (y * 100) + '%';
+  dragNode.plantData.x = x; dragNode.plantData.y = y;
+});
+window.addEventListener('mouseup', () => { if (isDragging) isDragging = false; });
 
-async function loadFromSheet(){
-  try{
-    const resp = await fetch(WEB_APP_URL);
-    const data = await resp.json();
-    plants = (data.data || []).map(d => ({
-      id: d.id || crypto.randomUUID(),
-      name: d.name,
-      type: d.type,
-      color: d.color,
-      extra: d.extra,
-      photo: d.photo,
-      x: parseFloat(d.x),
-      y: parseFloat(d.y),
-      created: d.created ? parseInt(d.created) : Date.now()
+document.getElementById('editMapBtn').onclick = () => {
+  editMode = !editMode;
+  const btn = document.getElementById('editMapBtn');
+  if (editMode) {
+    btn.textContent = 'Stop Edit (Zoom aan)'; btn.style.background = '#dc2626';
+    document.getElementById('tuin-wrapper').classList.add('editing');
+    if(panzoomInstance) panzoomInstance.destroy(); 
+  } else {
+    btn.textContent = 'Edit map (Slepen & Toevoegen)'; btn.style.background = '#2563eb';
+    document.getElementById('tuin-wrapper').classList.remove('editing');
+    initPanzoom();
+  }
+};
+
+inputPhoto.addEventListener('change', e => {
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    photoPreview.innerHTML = `<img src="${ev.target.result}">`;
+    inputPhoto.dataset.photo = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+});
+
+// --- DE BELANGRIJKE ASYNC FUNCTIES ---
+async function loadFromSheet() {
+  const overlay = document.getElementById('loading-overlay');
+  try {
+    const r = await fetch(WEB_APP_URL);
+    const d = await r.json();
+    if (d.error) throw new Error(d.error);
+    plants = (d.data || []).map(p => ({
+      id: p.id || crypto.randomUUID(),
+      name: p.name || "",
+      type: p.type || "anders",
+      size: (p.size && !isNaN(p.size)) ? parseInt(p.size) : 22,
+      color: p.color || "",
+      extra: p.extra || "",
+      photo: p.photo || "",
+      x: parseFloat(p.x) || 0,
+      y: parseFloat(p.y) || 0
     }));
     refreshAll();
-    document.getElementById('loading-overlay').style.display = 'none'; // overlay verbergen
-    alert('Data geladen van Google Sheet ✅');
-  }catch(err){
-    console.error(err);
-    document.getElementById('loading-overlay').style.display = 'none'; // overlay verbergen bij fout
-    alert('Laden van Google Sheet mislukt ❌');
+    overlay.style.display = 'none';
+  } catch(e) {
+    overlay.innerHTML = "Fout bij laden. Check de URL.";
+    console.error(e);
   }
 }
 
+document.getElementById('saveCloudBtn').onclick = async () => {
+  const btn = document.getElementById('saveCloudBtn');
+  const originalText = btn.textContent;
+  btn.textContent = "Opslaan...";
+  
+  const dataToSave = plants.map(p => ({
+    id: p.id, name: p.name, type: p.type, size: parseInt(p.size) || 22,
+    color: p.color, extra: p.extra, photo: p.photo, x: p.x, y: p.y
+  }));
 
-async function saveToSheet(){
-  try{
-    await fetch(WEB_APP_URL, {
-      method:"POST",
-      headers:{"Content-Type":"text/plain"},
-      body: JSON.stringify(plants)
+  try {
+    await fetch(WEB_APP_URL, { 
+      method: 'POST', 
+      headers: {"Content-Type":"text/plain"}, 
+      body: JSON.stringify(dataToSave) 
     });
-    alert('Data opgeslagen in Google Sheet ✅');
-  }catch(err){ console.error(err); alert('Fout bij opslaan naar Google Sheet ❌'); }
-}
-
-saveCloudBtn.addEventListener('click', saveToSheet);
-loadCloudBtn.addEventListener('click', loadFromSheet);
+    alert("Opgeslagen!");
+  } catch (e) {
+    alert("Fout bij opslaan.");
+  } finally {
+    btn.textContent = originalText;
+  }
+};
 
 loadFromSheet();
-
-window.handleClick = handleClick;
-window.zoomIn = zoomIn;
-window.zoomOut = zoomOut;
-window.resetZoom = resetZoom;
 </script>
-
 </body>
 </html>
