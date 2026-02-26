@@ -81,7 +81,20 @@
     .delete-btn { position:absolute; top:-10px; right:-10px; background:#ef4444; width:20px; height:20px; border-radius:50%; font-size:14px; color:white; text-align:center; cursor:pointer; display:none; border:2px solid white; line-height:18px; }
     #tuin-wrapper.editing .delete-btn { display: block; }
 
-    #form-popup { position:fixed; top:20px; right:20px; background:white; padding:20px; border-radius:12px; box-shadow:0 20px 60px rgba(0,0,0,0.3); z-index:3000; width:300px; display:none; transition: opacity 0.2s; }
+	#form-popup { 
+      position: fixed; 
+      top: 130px; /* Verhoogd van 20px naar 130px zodat hij onder de balk valt */
+      right: 20px; 
+      background: white; 
+      padding: 20px; 
+      border-radius: 12px; 
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3); 
+      z-index: 6000; /* Verhoogd naar 6000 om boven de sticky-header (5000) te blijven */
+      width: 300px; 
+      display: none; 
+      transition: opacity 0.2s; 
+    }
+ 
     #form-popup h3 { margin:0 0 10px 0; font-size:18px; }
     #form-popup label { display:block; margin-top:10px; font-weight:500; font-size: 14px; }
     #form-popup input[type="text"], #form-popup textarea, #form-popup select, #form-popup input[type="range"] { width:100%; margin-top:4px; padding:8px; box-sizing: border-box; border:1px solid #ccc; border-radius:6px; font-size: 14px; }
