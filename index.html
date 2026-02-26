@@ -104,7 +104,10 @@
 
     .white-text { color:white; text-shadow:1px 1px 3px rgba(0,0,0,0.8); }
     
-    .gallery-grid { display:flex; flex-direction:column; gap:24px; margin-top:20px; }
+    .gallery-grid { 
+      display: block; 
+      padding: 0 20px 40px 20px; 
+    }
     .card { background:white; border-radius:8px; padding:10px; box-shadow:0 8px 24px rgba(0,0,0,.08); display:flex; flex-direction:column; align-items:center; cursor:pointer; width:140px; }
     .card img { width:100%; aspect-ratio:4/3; object-fit:cover; border-radius:8px; display:block; margin-bottom:6px; }
     
@@ -256,28 +259,71 @@ function applyFilter() {
   refreshGallery(val);
 }
 
-function refreshGallery(filterVal = '') {
-  galleryGrid.innerHTML = '';
+function refreshGallery() {
+  const grid = document.getElementById('gallery-grid');
+  grid.innerHTML = '';
+  
+  // Nette namen voor de categorieën
+  const categoryLabels = {
+    roos: 'Rozen',
+    struik: 'Struiken',
+    vasteplant: 'Vaste planten',
+    boom: 'Bomen',
+    anders: 'Overige'
+  };
+
   const types = ['roos', 'struik', 'vasteplant', 'boom', 'anders'];
+  
   types.forEach(type => {
-    const filtered = plants.filter(p => p.type === type && (p.name || '').toLowerCase().includes(filterVal));
-    if (filtered.length === 0) return;
-    const typeBox = document.createElement('div');
-    typeBox.innerHTML = `<h3 class="white-text">${type.charAt(0).toUpperCase() + type.slice(1)}</h3>`;
+    const plantsOfType = plants.filter(p => p.type === type);
+    if (plantsOfType.length === 0) return;
+
+    // Filteren op unieke namen (hoofdletterongevoelig)
+    const uniquePlants = [];
+    const seenNames = new Set();
+
+    plantsOfType.forEach(p => {
+      const nameKey = (p.name || 'Naamloos').toLowerCase().trim();
+      if (!seenNames.has(nameKey)) {
+        seenNames.add(nameKey);
+        uniquePlants.push(p);
+      }
+    });
+
+    // Sectie maken voor de categorie
+    const typeSection = document.createElement('div');
+    typeSection.style.width = '100%';
+    typeSection.style.marginBottom = '30px';
+    
+    // De titel (bijv. "Rozen" ipv "Rooss")
+    typeSection.innerHTML = `
+      <h3 class="white-text" style="border-bottom: 1px solid rgba(255,255,255,0.3); padding-bottom: 8px;">
+        ${categoryLabels[type]}
+      </h3>
+    `;
+    
     const row = document.createElement('div');
-    row.style.display = 'flex'; row.style.flexWrap = 'wrap'; row.style.gap = '12px'; row.style.marginBottom = '18px';
-    filtered.forEach(p => {
+    row.style.display = 'flex';
+    row.style.flexWrap = 'wrap';
+    row.style.gap = '20px';
+    row.style.marginTop = '15px';
+
+    uniquePlants.forEach(p => {
       const card = document.createElement('div');
       card.className = 'card';
-      card.innerHTML = p.photo ? `<img src="${p.photo}">` : `<div class="no-photo-placeholder">Geen foto</div>`;
-      const meta = typeMeta[p.type] || typeMeta.anders;
-      const colorDot = `<span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:${p.color || meta.color};margin-right:6px;"></span>`;
-      card.innerHTML += `<div class="meta">${colorDot}${p.name || 'Naamloos'}</div>`;
+      card.style.width = '160px'; 
+      card.innerHTML = `
+        ${p.photo ? `<img src="${p.photo}">` : `<div style="height:120px; background:#f0f0f0; border-radius:6px; display:flex; align-items:center; justify-content:center; color:#999; font-size:12px;">Geen foto</div>`}
+        <div style="margin-top:10px; font-weight:bold; color:#333; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+          ${p.name || 'Naamloos'}
+        </div>
+      `;
       card.onclick = () => openForm(p);
       row.appendChild(card);
     });
-    typeBox.appendChild(row);
-    galleryGrid.appendChild(typeBox);
+
+    typeSection.appendChild(row);
+    grid.appendChild(typeSection);
   });
 }
 
