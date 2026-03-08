@@ -39,14 +39,14 @@
 	
     .plant-wrapper { position:absolute; transform:translate(-50%,-50%); z-index: 100; pointer-events: auto; }
 	.plant { 
-      display:flex; align-items:center; justify-content:center; 
-      border-radius:50%; color:white; cursor: pointer;
-      /* Aquarel effect: zachte rand en glow */
-      border: 1.5px solid rgba(255,255,255,0.6);
-      box-shadow: 0 0 8px rgba(0,0,0,0.1);
-      transition: transform 0.2s;
-      font-weight: bold;
-    }
+  display:flex; align-items:center; justify-content:center; 
+  border-radius:50%; color:white; cursor: pointer;
+  transition: transform 0.2s;
+  font-weight: bold;
+  overflow: hidden; /* Zorgt dat de foto binnen de cirkel blijft */
+  background-size: cover;
+  background-position: center;
+}
 
     .legend-dot { 
       width:14px; height:14px; border-radius:50%; display:inline-block; 
@@ -181,8 +181,9 @@
   <div id="photo-preview"></div>
   
   <div class="form-buttons">
-    <button id="savePlantBtn">Opslaan</button>
-    <button id="cancelBtn" style="background:#6b7280">Annuleren</button>
+  <button id="savePlantBtn">Opslaan</button>
+  <button id="duplicatePlantBtn" style="background:#10b981; display:none;">Dupliceer</button> 
+  <button id="cancelBtn" style="background:#6b7280">Annuleren</button>
   </div>
 </div>
 
@@ -263,7 +264,6 @@ function refreshGallery() {
   const grid = document.getElementById('gallery-grid');
   grid.innerHTML = '';
   
-  // Nette namen voor de categorieën
   const categoryLabels = {
     roos: 'Rozen',
     struik: 'Struiken',
@@ -278,7 +278,7 @@ function refreshGallery() {
     const plantsOfType = plants.filter(p => p.type === type);
     if (plantsOfType.length === 0) return;
 
-    // Filteren op unieke namen (hoofdletterongevoelig)
+    // 1. Filteren op unieke namen
     const uniquePlants = [];
     const seenNames = new Set();
 
@@ -290,12 +290,18 @@ function refreshGallery() {
       }
     });
 
-    // Sectie maken voor de categorie
+    // 2. Alfabetisch sorteren op naam
+    uniquePlants.sort((a, b) => {
+      const nameA = (a.name || 'Naamloos').toLowerCase();
+      const nameB = (b.name || 'Naamloos').toLowerCase();
+      return nameA.localeCompare(nameB);
+    });
+
+    // 3. Sectie maken voor de categorie
     const typeSection = document.createElement('div');
     typeSection.style.width = '100%';
     typeSection.style.marginBottom = '30px';
     
-    // De titel (bijv. "Rozen" ipv "Rooss")
     typeSection.innerHTML = `
       <h3 class="white-text" style="border-bottom: 1px solid rgba(255,255,255,0.3); padding-bottom: 8px;">
         ${categoryLabels[type]}
@@ -342,21 +348,35 @@ function renderPlant(plant) {
   wrapper.style.top = (plant.y * 100) + '%';
   wrapper.dataset.name = (plant.name || '').toLowerCase();
   
-  // 3. Aquarel & Schaalbare styling
+  // 3. Styling van de bol (Grootte & Basis)
   plantEl.style.width = relativeSize;
   plantEl.style.height = relativeSize;
-  plantEl.style.backgroundColor = plant.color || meta.color;
-  plantEl.style.opacity = "0.65"; 
+  plantEl.style.backgroundSize = 'cover';
+  plantEl.style.backgroundPosition = 'center';
+  plantEl.style.backgroundRepeat = 'no-repeat';
+
+  // 4. Foto-logica: Gebruik foto als achtergrond indien aanwezig
+  if (plant.photo && plant.photo.startsWith('data:image')) {
+    plantEl.style.backgroundImage = `url('${plant.photo}')`;
+    plantEl.style.backgroundColor = 'transparent';
+    plantEl.textContent = ''; // Verwijder de letter (R, S, B, V) voor een schone look
+    plantEl.style.opacity = "1"; // Foto's mogen ondoorzichtig zijn
+    plantEl.style.border = "2px solid white"; // Witte rand laat foto's eruit springen
+  } else {
+    // Geen foto? Gebruik de kleur en de letter
+    plantEl.style.backgroundImage = 'none';
+    plantEl.style.backgroundColor = plant.color || meta.color;
+    plantEl.textContent = plant.type.charAt(0).toUpperCase();
+    plantEl.style.opacity = "0.65"; 
+    plantEl.style.border = "1.5px solid rgba(255,255,255,0.6)";
+  }
   
-  // 4. De letter ook schaalbaar maken
-  const letter = plant.type.charAt(0).toUpperCase();
-  plantEl.textContent = letter; 
+  // 5. Letter/Icoon styling (indien geen foto)
   plantEl.style.fontSize = (size / 18).toFixed(2) + 'cqw';
   plantEl.style.textShadow = "1px 1px 2px rgba(0,0,0,0.3)";
-
   plantEl.setAttribute('data-id', plant.id);
 
-  // Tooltip & Events
+  // 6. Tooltip Events
   wrapper.addEventListener('mouseenter', () => {
     let html = `<div><strong>${plant.name || 'Naamloos'}</strong></div>`;
     if (plant.extra) html += `<div style="margin-top:4px; font-style:italic;">${plant.extra}</div>`;
@@ -365,12 +385,24 @@ function renderPlant(plant) {
   });
   wrapper.addEventListener('mouseleave', hideTooltip);
 
-  plantEl.onclick = (e) => { e.stopPropagation(); if (!hasMoved) { hideTooltip(); openForm(plant); } };
+  // 7. Klik & Sleep Events
+  plantEl.onclick = (e) => { 
+    e.stopPropagation(); 
+    if (!hasMoved) { 
+      hideTooltip(); 
+      openForm(plant); 
+    } 
+  };
+
   wrapper.querySelector('.delete-btn').onclick = (e) => { 
     e.stopPropagation(); 
-    plants = plants.filter(p => p.id !== plant.id); 
-    hideTooltip(); refreshAll(); 
+    if(confirm('Zeker weten dat je deze plant wilt verwijderen?')) {
+      plants = plants.filter(p => p.id !== plant.id); 
+      hideTooltip(); 
+      refreshAll(); 
+    }
   };
+
   tuinEl.appendChild(wrapper);
 }
 
@@ -406,6 +438,7 @@ function openForm(plant = null) {
   photoPreview.innerHTML = plant && plant.photo ? `<img src="${plant.photo}">` : '';
   inputPhoto.value = '';
   delete inputPhoto.dataset.photo;
+  document.getElementById('duplicatePlantBtn').style.display = plant ? 'block' : 'none';
   document.getElementById('form-popup').style.display = 'block';
 }
 
@@ -478,6 +511,32 @@ inputPhoto.addEventListener('change', e => {
   };
   reader.readAsDataURL(file);
 });
+
+document.getElementById('duplicatePlantBtn').onclick = () => {
+  const name = document.getElementById('input-name').value.trim();
+  const type = document.getElementById('input-type').value;
+  const size = parseInt(document.getElementById('input-size').value);
+  const color = document.getElementById('input-color').value;
+  const extra = document.getElementById('input-extra').value;
+  const photo = inputPhoto.dataset.photo || (photoPreview.querySelector('img') ? photoPreview.querySelector('img').src : '');
+
+  // We maken een nieuwe plant met dezelfde data, maar verschuiven hem een klein beetje (5%)
+  // zodat je ziet dat er een kopie is gemaakt.
+  const original = plants.find(p => p.id === editingId);
+  const newPlant = {
+    id: crypto.randomUUID(),
+    name, type, size, color, extra, photo,
+    x: original.x + 0.05, 
+    y: original.y + 0.05
+  };
+
+  plants.push(newPlant);
+  document.getElementById('form-popup').style.display = 'none';
+  refreshAll();
+  alert("Plant gedupliceerd! Sleep de nieuwe plant naar de juiste plek.");
+};
+
+
 
 // --- DE BELANGRIJKE ASYNC FUNCTIES ---
 async function loadFromSheet() {
